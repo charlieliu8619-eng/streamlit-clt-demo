@@ -174,35 +174,10 @@ if run_simulation:
 
     2. **Performance Monitoring:** If observed clicks deviate significantly from λ, it may indicate campaign performance changes or technical issues.
 
-    3. **Statistical Testing:** The Poisson model helps determine if changes in click rates are statistically significant.
-
-    4. **Rare Event Analysis:** Perfect for modeling low-frequency, high-value events like premium ad clicks or conversions.
-
     **Key Insight:** Notice how the observed variance ({observed_var:.2f}) approximately equals the mean ({observed_mean:.2f}), 
     confirming the Poisson property that variance = mean = λ.
     """)
 
-    # --- Probability Calculator ---
-    st.header("🎲 Click Probability Calculator")
-    target_clicks = st.number_input(
-        f"Calculate probability of exactly X clicks per {time_unit.lower()}:",
-        min_value=0,
-        max_value=50,
-        value=int(lambda_rate),
-        step=1
-    )
-    
-    prob_exact = stats.poisson.pmf(target_clicks, lambda_rate)
-    prob_at_least = 1 - stats.poisson.cdf(target_clicks - 1, lambda_rate)
-    prob_at_most = stats.poisson.cdf(target_clicks, lambda_rate)
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric(f"P(exactly {target_clicks} clicks)", f"{prob_exact:.4f}")
-    with col2:
-        st.metric(f"P(≥ {target_clicks} clicks)", f"{prob_at_least:.4f}")
-    with col3:
-        st.metric(f"P(≤ {target_clicks} clicks)", f"{prob_at_most:.4f}")
 
 else:
     st.info("👈 Adjust the controls in the sidebar and click 'Run Simulation' to see the Poisson distribution in action!")
