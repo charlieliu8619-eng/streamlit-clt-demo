@@ -44,8 +44,6 @@ st.markdown("""
 This dashboard demonstrates the **Central Limit Theorem (CLT)** using a real-world example relevant to content creators: **daily ad revenue**.
 
 Daily ad revenue can be unpredictable. Some days might have unusually high earnings due to a viral post, while most days are average. This results in a **skewed distribution**. The CLT tells us that if we take the *average* revenue over a sample of many days (e.g., 30 days) and repeat this process many times, the distribution of these averages will look like a **normal distribution (a bell curve)**.
-
-This is powerful because it allows us to make reliable forecasts about long-term earnings, even if daily earnings are volatile.
 ---
 """)
 
@@ -134,7 +132,7 @@ if run_simulation:
     # --- Explanation of the Results ---
     st.header("💡 Business Implications")
     st.markdown(f"""
-    This simulation shows why the Central Limit Theorem is so important for a business like Raptive.
+    This simulation shows why the Central Limit Theorem is so important for Raptive.
 
     1.  **Predictability from Unpredictability:** Even though individual daily earnings for a creator are volatile and skewed (as seen in the left chart), the average earnings over a period (like a month) become very predictable and stable (as seen in the right chart).
 
