@@ -1,12 +1,14 @@
 import streamlit as st
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
+from scipy import stats
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="Ad Revenue & The Central Limit Theorem",
-    page_icon="📈",
+    page_title="Ad Click Events & Poisson Distribution",
+    page_icon="🎯",
     layout="wide"
 )
 
@@ -20,7 +22,7 @@ st.markdown("""
         max-width: 100%;
     }
     .stButton>button {
-        background-color: #00b0f0; /* A blue shade */
+        background-color: #00b0f0;
         color: white;
         border-radius: 12px;
         padding: 10px 24px;
@@ -32,117 +34,176 @@ st.markdown("""
         background-color: #0099d1;
     }
     h1, h2, h3 {
-        color: #1E3A8A; /* Dark Blue */
+        color: #1E3A8A;
     }
 </style>
 """, unsafe_allow_html=True)
 
-
 # --- App Header ---
-st.title("📈 Ad Revenue Simulation & The Central Limit Theorem")
+st.title("🎯 Ad Click Events & The Poisson Distribution")
 st.markdown("""
-This dashboard demonstrates the **Central Limit Theorem (CLT)** using a real-world example relevant to content creators: **daily ad revenue**.
+This dashboard demonstrates the **Poisson Distribution** for modeling rare events in digital advertising: **ad clicks per time period**.
 
-Daily ad revenue can be unpredictable. Some days might have unusually high earnings due to a viral post, while most days are average. This results in a **skewed distribution**. The CLT tells us that if we take the *average* revenue over a sample of many days (e.g., 30 days) and repeat this process many times, the distribution of these averages will look like a **normal distribution (a bell curve)**.
+The Poisson distribution is perfect for modeling:
+- Number of ad clicks per hour/day
+- Click events that occur randomly and independently
+- Rare events with a known average rate
+
+**Key Properties:**
+- Models count data (0, 1, 2, 3... clicks)
+- Single parameter λ (lambda) = average rate of events
+- Variance equals the mean (λ)
+- Useful for capacity planning and performance analysis
 ---
 """)
 
 # --- Sidebar for User Inputs ---
 with st.sidebar:
     st.header("⚙️ Simulation Controls")
-    st.markdown("Adjust the parameters to see how the distributions change.")
+    st.markdown("Adjust parameters to see how click patterns change.")
 
-    # Input for the average daily revenue
-    avg_daily_revenue = st.number_input(
-        "Average Daily Revenue ($):",
-        min_value=10,
-        max_value=1000,
-        value=150,
-        step=10,
-        help="This sets the average for our simulated daily revenue data. It's the 'scale' parameter for the exponential distribution."
+    # Lambda parameter (average clicks per time period)
+    lambda_rate = st.number_input(
+        "Average clicks per hour (λ):",
+        min_value=0.1,
+        max_value=50.0,
+        value=5.0,
+        step=0.5,
+        help="The average number of clicks expected per hour. This is the λ parameter of the Poisson distribution."
     )
 
-    # Slider for the number of days in each sample
-    sample_size = st.slider(
-        "Days in each sample (N):",
-        min_value=1,
-        max_value=100,
-        value=30,
-        step=1,
-        help="How many days of revenue to average at a time? A typical value is 30 for a monthly average. As N increases, the distribution of averages becomes more normal."
-    )
-
-    # Slider for the number of samples to simulate
-    num_samples = st.slider(
-        "Number of samples to simulate:",
+    # Number of time periods to simulate
+    num_periods = st.slider(
+        "Number of hours to simulate:",
         min_value=100,
-        max_value=10000,
-        value=2000,
+        max_value=5000,
+        value=1000,
         step=100,
-        help="How many times should we calculate the sample average? More samples create a smoother final distribution."
+        help="How many hourly periods to simulate for our analysis."
     )
 
-    # A button to run the simulation
-    run_simulation = st.button("Run Simulation")
+    # Time period selector
+    time_unit = st.selectbox(
+        "Time period:",
+        ["Hour", "Day", "Week"],
+        help="Choose the time unit for analysis."
+    )
 
+    run_simulation = st.button("Run Simulation")
 
 # --- Main Panel for Output ---
 if run_simulation:
-    st.header("📊 Simulation Results")
+    st.header("📊 Poisson Distribution Analysis")
 
-    with st.spinner("Simulating revenue data..."):
-        # We generate a large pool of daily revenue data using an exponential distribution
-        # This distribution is skewed, which is realistic for daily revenue.
-        total_days_to_simulate = num_samples * sample_size
-        daily_revenue_data = np.random.exponential(scale=avg_daily_revenue, size=total_days_to_simulate)
+    with st.spinner("Generating click event data..."):
+        # Generate Poisson-distributed click data
+        click_data = np.random.poisson(lam=lambda_rate, size=num_periods)
         
-        # Reshape data into our samples and calculate the mean of each sample
-        samples = daily_revenue_data.reshape(num_samples, sample_size)
-        sample_means = np.mean(samples, axis=1)
+        # Calculate statistics
+        observed_mean = np.mean(click_data)
+        observed_var = np.var(click_data)
+        theoretical_var = lambda_rate
 
-    # --- Display Plots Side-by-Side ---
+    # --- Display Results ---
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Distribution of Daily Revenue")
-        # Plotting the distribution of the underlying daily revenue data
+        st.subheader("Simulated Click Distribution")
+        
+        # Create histogram of observed data
         fig1 = px.histogram(
-            x=daily_revenue_data,
-            title="Original (Skewed) Daily Data",
-            labels={'x': 'Daily Revenue ($)', 'y': 'Frequency'},
+            x=click_data,
+            title=f"Observed Clicks per {time_unit}",
+            labels={'x': f'Number of Clicks per {time_unit}', 'y': 'Frequency'},
             template="plotly_white"
         )
         fig1.update_traces(marker_color='#FF5733', opacity=0.7)
         st.plotly_chart(fig1, use_container_width=True)
-        st.markdown("Notice that this distribution is **not a bell curve**. It's heavily skewed to the right, with a long tail representing rare, high-earning days.")
 
     with col2:
-        st.subheader("Distribution of Sample Averages")
-        # Plotting the distribution of the sample means
-        fig2 = px.histogram(
-            x=sample_means,
-            title=f"Averages of {sample_size}-Day Samples",
-            labels={'x': f'Average Revenue over {sample_size} days ($)', 'y': 'Frequency'},
+        st.subheader("Theoretical vs Observed")
+        
+        # Create comparison with theoretical Poisson
+        x_range = np.arange(0, max(click_data) + 1)
+        theoretical_pmf = stats.poisson.pmf(x_range, lambda_rate)
+        observed_counts = np.bincount(click_data, minlength=len(x_range))
+        observed_pmf = observed_counts / num_periods
+
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(
+            x=x_range,
+            y=theoretical_pmf,
+            name='Theoretical Poisson',
+            marker_color='#00b0f0',
+            opacity=0.7
+        ))
+        fig2.add_trace(go.Bar(
+            x=x_range,
+            y=observed_pmf,
+            name='Observed Data',
+            marker_color='#FF5733',
+            opacity=0.5
+        ))
+        fig2.update_layout(
+            title="Theoretical vs Observed Distribution",
+            xaxis_title=f"Number of Clicks per {time_unit}",
+            yaxis_title="Probability",
             template="plotly_white"
         )
-        fig2.update_traces(marker_color='#00b0f0', opacity=0.7)
         st.plotly_chart(fig2, use_container_width=True)
-        st.markdown(f"This distribution **is a bell curve**, centered around the true average of ${avg_daily_revenue:.2f}. This is the Central Limit Theorem in action!")
 
-    # --- Explanation of the Results ---
-    st.header("💡 Business Implications")
+    # --- Key Statistics ---
+    st.header("📈 Key Statistics & Properties")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Expected Mean (λ)", f"{lambda_rate:.2f}")
+    with col2:
+        st.metric("Observed Mean", f"{observed_mean:.2f}")
+    with col3:
+        st.metric("Expected Variance (λ)", f"{theoretical_var:.2f}")
+    with col4:
+        st.metric("Observed Variance", f"{observed_var:.2f}")
+
+    # --- Business Applications ---
+    st.header("💼 Business Applications")
     st.markdown(f"""
-    This simulation shows why the Central Limit Theorem is so important for Raptive.
+    **Why Poisson Distribution matters for digital advertising:**
 
-    1.  **Predictability from Unpredictability:** Even though individual daily earnings for a creator are volatile and skewed (as seen in the left chart), the average earnings over a period (like a month) become very predictable and stable (as seen in the right chart).
+    1. **Capacity Planning:** With λ = {lambda_rate:.1f} clicks per {time_unit.lower()}, you can predict server load and plan infrastructure capacity.
 
-    2.  **Accurate Forecasting:** Because the distribution of these averages is normal, we can use its statistical properties to create accurate earnings forecasts and confidence intervals. For example, we can say with high confidence that a creator's average monthly revenue will fall within a certain range.
+    2. **Performance Monitoring:** If observed clicks deviate significantly from λ, it may indicate campaign performance changes or technical issues.
 
-    3.  **Risk Management:** Understanding this principle helps manage risk. We know that a single bad day won't sink long-term earnings, as it will be balanced out over the sampling period.
+    3. **Statistical Testing:** The Poisson model helps determine if changes in click rates are statistically significant.
 
-    By increasing the **'Days in each sample (N)'** slider, you'll see the bell curve on the right become even narrower and more defined, signifying that longer-term averages are even more stable and predictable.
+    4. **Rare Event Analysis:** Perfect for modeling low-frequency, high-value events like premium ad clicks or conversions.
+
+    **Key Insight:** Notice how the observed variance ({observed_var:.2f}) approximately equals the mean ({observed_mean:.2f}), 
+    confirming the Poisson property that variance = mean = λ.
     """)
 
+    # --- Probability Calculator ---
+    st.header("🎲 Click Probability Calculator")
+    target_clicks = st.number_input(
+        f"Calculate probability of exactly X clicks per {time_unit.lower()}:",
+        min_value=0,
+        max_value=50,
+        value=int(lambda_rate),
+        step=1
+    )
+    
+    prob_exact = stats.poisson.pmf(target_clicks, lambda_rate)
+    prob_at_least = 1 - stats.poisson.cdf(target_clicks - 1, lambda_rate)
+    prob_at_most = stats.poisson.cdf(target_clicks, lambda_rate)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(f"P(exactly {target_clicks} clicks)", f"{prob_exact:.4f}")
+    with col2:
+        st.metric(f"P(≥ {target_clicks} clicks)", f"{prob_at_least:.4f}")
+    with col3:
+        st.metric(f"P(≤ {target_clicks} clicks)", f"{prob_at_most:.4f}")
+
 else:
-    st.info("👈 Adjust the controls in the sidebar and click 'Run Simulation' to see the results!")
+    st.info("👈 Adjust the controls in the sidebar and click 'Run Simulation' to see the Poisson distribution in action!")
 
